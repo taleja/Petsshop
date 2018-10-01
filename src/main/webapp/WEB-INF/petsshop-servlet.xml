@@ -10,32 +10,61 @@
         http://www.springframework.org/schema/mvc/spring-mvc.xsd
         http://www.springframework.org/schema/context 
         http://www.springframework.org/schema/context/spring-context.xsd">
- 
-    <context:component-scan base-package="com.petsshop.controller"/>
-	<mvc:annotation-driven />
-	<mvc:default-servlet-handler />
- 
-	<bean id="viewResolver"
+
+	<context:component-scan base-package="com.petsshop.controller" />
+	<mvc:annotation-driven
+		content-negotiation-manager="contentNegotiationManager">
+	</mvc:annotation-driven>
+
+
+	<!-- <mvc:default-servlet-handler /> -->
+
+	<!-- <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver"> 
+		<property name="contentNegotiationManager" ref="cnManager" /> <property name="viewResolvers"> 
+		<list> <bean name="viewResolver" class="org.springframework.web.servlet.view.BeanNameViewResolver" 
+		/> </list> </property> </bean> -->
+
+	<bean id="jspViewResolver"
 		class="org.springframework.web.servlet.view.UrlBasedViewResolver">
 		<property name="viewClass"
 			value="org.springframework.web.servlet.view.JstlView" />
 		<property name="prefix" value="/WEB-INF/jsp/" />
 		<property name="suffix" value=".jsp" />
 	</bean>
-	
-	<!--  <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
-        <property name="messageConverters">
-            <list>
-                <!- -<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/> - ->
-                <bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter"/>
-                <bean class="org.springframework.http.converter.xml.SourceHttpMessageConverter"/>
-                <bean class="org.springframework.http.converter.FormHttpMessageConverter"/>
-                <bean class="org.springframework.http.converter.StringHttpMessageConverter"/>
-            </list>
-        </property>
+
+	<bean id="contentNegotiationManager"
+		class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+		<property name="favorPathExtension" value="true" />
+		<property name="favorParameter" value="false" />
+		<property name="parameterName" value="mediaType" />
+		<property name="ignoreAcceptHeader" value="false" />
+		<property name="defaultContentType" value="text/html" />
+		<property name="useJaf" value="false" />
+		<property name="mediaTypes">
+			<map>
+				<entry key="html" value="text/html" />
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
 	</bean>
-	
-	 -->
+
+	<!-- <bean name="jsonTemplate" class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBeans" 
+		> </bean> -->
+
+	<!-- <bean id="viewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver"> 
+		<property name="viewClass" value="org.springframework.web.servlet.view.JstlView" 
+		/> <property name="prefix" value="/WEB-INF/jsp/" /> <property name="suffix" 
+		value=".jsp" /> </bean> -->
+
+
+
+	<!-- <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"> 
+		<property name="messageConverters"> <list> <!- -<bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/> 
+		- -> <bean class="org.springframework.http.converter.ByteArrayHttpMessageConverter"/> 
+		<bean class="org.springframework.http.converter.xml.SourceHttpMessageConverter"/> 
+		<bean class="org.springframework.http.converter.FormHttpMessageConverter"/> 
+		<bean class="org.springframework.http.converter.StringHttpMessageConverter"/> 
+		</list> </property> </bean> -->
 
 
 </beans>
