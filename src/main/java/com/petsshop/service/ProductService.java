@@ -1,7 +1,9 @@
 package com.petsshop.service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Resource;
 
@@ -9,6 +11,8 @@ import javax.annotation.Resource;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.Query;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,20 +20,18 @@ import com.petsshop.dto.ProductDTO;
 import com.petsshop.dto.ProductDetailDTO;
 import com.petsshop.model.Product;
 
-
-
 @Service(value="productService")
 @Transactional
 public class ProductService {
-
-	//protected static Logger logger = Logger.getLogger("service");
 	
 	@Resource(name="sessionFactory")
 	private SessionFactory sessionFacroty;
 	
+	@Autowired 
+	private JmsClientService jmsClientService;
+	
 	public List<Product> getAll(){
-		//logger.debug("Retrieving all products");
-		
+
 		Session session = getSession();
 		Query<Product> query = session.createQuery("From Product");	
 		return query.list();
@@ -41,31 +43,23 @@ public class ProductService {
 	}
 	
 	public Product get(Integer id) {
-		//logger.debug("Getting product by id");
-		
 		Session session = getSession();
 		Product product = session.get(Product.class, id);
 		return product;
 	}
 	
 	public void add(Product product) {
-		//logger.debug("Adding new product");
-		
 		Session session = getSession();
 		session.save(product);
 	}
 	
-	public void delete(Integer id) {
-		//logger.debug("Delete product by id");
-		
+	public void delete(Integer id) {	
 		Session session = getSession();
 		Product product = session.get(Product.class, id);
 		session.delete(product);
 	}
 	
 	public void edit(Product product) {
-		//logger.debug("Edit product");
-		
 		Session session = getSession();
 		Product existingProduct = session.get(Product.class, product.getId());
 		existingProduct.setProductName(product.getProductName());
@@ -74,8 +68,7 @@ public class ProductService {
 		session.save(existingProduct);
 	}
 
-	public void updateDTO(ProductDTO productDTO) {
-		
+	public void updateDTO(ProductDTO productDTO) {		
 		Session session = getSession();
 		Product existingProduct = session.get(Product.class, productDTO.getId());
 		existingProduct.setProductName(productDTO.getDetail().getProductName());
@@ -86,14 +79,63 @@ public class ProductService {
 
 	public Integer addDTO(ProductDetailDTO productDetail) {
 		Session session = getSession();
-		Product product = new Product();
-		product.setProductName(productDetail.getProductName());
-		product.setDescription(productDetail.getDescription());
-		product.setQuantity(productDetail.getQuantity());
-		session.save(product);
+		Product product;
+		
+		Query<Product> query = session.createQuery("from Product as product where product.productName=:product_name");
+		query.setParameter("product_name", productDetail.getProductName());
+		if(query.list().size() == 0) {
+			product = new Product();
+			product.setProductName(productDetail.getProductName());
+			product.setDescription(productDetail.getDescription());
+			product.setQuantity(productDetail.getQuantity());
+			session.save(product);
+		} else {
+			product = query.getSingleResult();
+			product.setProductName(productDetail.getProductName());
+			product.setDescription(productDetail.getDescription());
+			int newQuantity = product.getQuantity() + productDetail.getQuantity();
+			product.setQuantity(newQuantity);
+			session.save(product);
+		}	
+		jmsClientService.sendProductToBrocker(product);	
 		return product.getId();
 	}
 
+	public void addDTOList(List<ProductDetailDTO> productDetailDTOList) {
+		Session session = getSession();
+		session.setJdbcBatchSize(productDetailDTOList.size());
+		List<String> productNames = new ArrayList<>();
+		Map<String, ProductDetailDTO> productNameToProductDTO = new HashMap<>();
+		
+		for(ProductDetailDTO pdd: productDetailDTOList) {
+			productNames.add(pdd.getProductName());
+			productNameToProductDTO.put(pdd.getProductName(), pdd);
+		}
+		
+		Query<Product> query = session.createQuery("from Product as product where product.productName in (:product_names)");	
+		query.setParameterList("product_names", productNames);
+		List<Product> existedProducts = query.list();
+		
+		//Update existing products
+		for(Product existingProduct: existedProducts) {
+			ProductDetailDTO prodDTO = productNameToProductDTO.remove(existingProduct.getProductName());
+			existingProduct.setDescription(prodDTO.getDescription());
+			existingProduct.setQuantity(existingProduct.getQuantity() + prodDTO.getQuantity()); 
+		}
+		session.flush();
+		
+		//Create new products
+		for(ProductDetailDTO newProductDTO: productNameToProductDTO.values()) {
+			Product product = new Product();
+			product.setProductName(newProductDTO.getProductName());
+			product.setDescription(newProductDTO.getDescription());
+			product.setQuantity(newProductDTO.getQuantity());
+	
+			session.save(product);
+		}
+		session.flush();
+	}
+	
 	public ProductDTO getDTO(Integer id) {
 		Session session = getSession();
 		Product product = session.get(Product.class, id);
@@ -109,9 +151,11 @@ public class ProductService {
 		return productDTO;
 	}
 
-	public List<ProductDTO> getAllDTO() {
+	public List<ProductDTO> getAllDTO(int offset, int limit) {
 		Session session = getSession();
 		Query<Product> query = session.createQuery("From Product");	
+		query.setFirstResult(offset);
+		query.setMaxResults(limit);
 		
 		List<ProductDTO> listDTO = new ArrayList<>();
 		for(Product product: query.list()) {

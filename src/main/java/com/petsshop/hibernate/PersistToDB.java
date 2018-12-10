@@ -3,6 +3,7 @@ package com.petsshop.hibernate;
 import org.hibernate.Session;
 
 import com.petsshop.model.Product;
+import com.petsshop.model.User;
 
 
 
@@ -14,12 +15,24 @@ public class PersistToDB {
 		Session session = HibernateUtil.getSessionFactory().openSession();
 		session.beginTransaction();
 		
-		Product product = new Product();
-		product.setProductName("mouse11");
-		product.setDescription("toy11");
-		product.setQuantity(5);
+//		Product product = new Product();
+//		product.setProductName("mouse11");
+//		product.setDescription("toy11");
+//		product.setQuantity(5);
 		
-		session.save(product);
+//		User user = new User();
+//		user.setLogin("oviliuzh");
+//		user.setPassword("admin"); 
+//		user.setRole("administartor");
+//		session.save(user);
+		
+		User user = new User();
+		user.setLogin("olena");
+		user.setPassword("qwerty"); 
+		user.setRole("guest");
+		session.save(user);
+		
+		//session.save(product);
 		session.getTransaction().commit();		
 	}
 

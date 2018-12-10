@@ -10,7 +10,6 @@
         <property name="show_sql">true</property>
         <property name="format_sql">false</property>
         <property name="hibernate.hbm2ddl.auto">update</property>
-        <property name="hibernate.jdbc.batch_size">5</property>
         <mapping class="com.petsshop.model.Product"/>
         <mapping class="com.petsshop.model.User"/>
         

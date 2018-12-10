@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Hello jQuery</title>
+<script src="js/jquery.js"></script>
+</head>
+
+<body>
+<div class="container">
+<div class="main">
+	<form id="loginForm" action="" method="post">
+		<h2>Login to the Petsshop site</h2>
+		<input type="text" id="loginusername" placeholder="Username" class = "field" />
+		<input type="password" id="loginpassword" placeholder="Password" class = "field"/>
+		<input type="button" class="login" value="Sign In" />
+	</form> 
+	
+	<form method="post" enctype="multipart/form-data" id="fileToUpload">
+ 		<div>
+ 			<h2>Upload data from an external file.</h2>
+   			<label for="file">Select file</label>
+   			<input type="file" id="file" name="file" multiple>
+ 		</div>
+ 		<div>
+   			<input type="button" class="submit" value="Submit" />
+ 		</div>
+
+	</form>
+
+	<div id="productsView" style="display:none">
+		<h1>This is product page</h1>
+			
+		<div id="productsList"></div>
+		<a href="#" id="btn_prev">Previous &nbsp;</a>
+		<a href="#" id="btn_next">Next &nbsp;</a>
+	</div>
+		
+</div>
+</div>
+
+</body>
+
+<div id="productItem_template" style="display:none">
+	<div  class="productListItem">
+		<input type="text" class="productName" placeholder="Product Name">
+	    <input type="text" class="description" placeholder="Description">
+	    <input type="text" class="quantity" placeholder="Quantity">
+	</div>
+
+</div>
+
+<script>
+	$(document).ready(function() {
+
+	  	const PAGE_SIZE = 10;
+	  	var currentOffset = 0;
+	  	$('#fileToUpload').hide();
+		$('#btn_prev').click(prevPage);
+		$('#btn_next').click(nextPage);
+	  	
+		$(".login").click(function() {
+			if ($("#loginusername").val() == "" || $("#loginpassword").val() == "") {
+				alert("Please, fill all fields");
+			} else {
+				var userData = {}
+				userData["login"] = $("#loginusername").val();			
+				userData["password"] = $("#loginpassword").val();				
+				$.ajax({
+					'type': 'POST',
+			        'url': "/petsshop/petsshop/login/login",
+			        'contentType': 'application/json',
+			        'data': JSON.stringify(userData),
+			        'dataType': 'json',
+			        'success': function(data, status){
+				    	console.log(data.login);
+				    	$('#loginForm').hide();
+				    	$('#fileToUpload').show();
+				    	//showProductsView(0);
+					}
+				})
+			}						
+		});
+		
+ 		$(".submit").click(function(){
+ 			
+ 			event.preventDefault();
+ 		    var form = $('#fileToUpload')[0];
+ 		    var data = new FormData(form);
+ 		    $("#submit").prop("disabled", true);
+ 		    
+			$.ajax({
+				'type': 'POST',
+				'enctype': 'multipart/form-data',
+				'url': '/petsshop/petsshop/upload/file',
+				'data': data,
+	            'processData': false,
+	            'contentType': false,
+	            'cache': false,
+	            'timeout': 600000,
+				'success': function(data){
+	                console.log("SUCCESS : ", data);
+	                $("#btnSubmit").prop("disabled", false);
+	                showProductsView(0);
+				}
+			})
+		}) 
+		
+		function showProductsView(offset) {
+			$.ajax({
+				  type: "GET",
+				  url: `/petsshop/petsshop/rest/products?offset=${offset}&limit=${PAGE_SIZE}`,
+				  dataType: 'json',
+				  cache: false,
+				  success: function(data){		
+					$('#fileToUpload').hide();
+					changePage(data, offset);		
+				  }
+				});			
+			
+			$('#productsView').show();
+			
+			function changePage(data, offset){
+
+				let itemTemplateHtml = $("#productItem_template").html();
+				
+				currentOffset = offset;
+				let productList = $("#productsList")
+				productList.empty();
+		    	for (var i = 0; i < data.length; i++) {
+		    		
+		    		let item = productList.append(itemTemplateHtml).find(".productListItem").last();
+		    		item.attr("id", "item" + i);
+		    		item.find(".productName").val(data[i].detail.productName);
+		    		item.find(".description").val(data[i].detail.description);
+		    		item.find(".quantity").val(data[i].detail.quantity);
+		    		
+				}
+			}		
+		}
+		
+		function prevPage(){
+			showProductsView(currentOffset - PAGE_SIZE);
+			return false;
+		}
+
+		function nextPage(){		
+				showProductsView(currentOffset + PAGE_SIZE);
+		    return false;
+		}
+		
+	});
+</script>
+</html>

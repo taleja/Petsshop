@@ -12,7 +12,8 @@ public class HibernateUtil {
 
 	static {
 		try {
-			StandardServiceRegistry  standardServiceRegistry = new StandardServiceRegistryBuilder().configure().build();
+			StandardServiceRegistry  standardServiceRegistry = new StandardServiceRegistryBuilder().
+					configure().build();
 			Metadata metadata = new MetadataSources(standardServiceRegistry).getMetadataBuilder().build();
 			sessionFactory = metadata.getSessionFactoryBuilder().build();
 		} catch (Throwable ex) {
